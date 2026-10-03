@@ -250,3 +250,73 @@ Tips for receiving feedback well.
 
 Be practical, specific, and supportive.`;
 }
+
+export function buildWeeklySummaryPrompt({ week, dailyLogs, targetName = 'Irene' }) {
+  const weekEntries = Object.entries(dailyLogs || {})
+    .filter(([d]) => weekOfPIP(d) === week)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const dayByDay = weekEntries.map(([d, log]) => {
+    const entries = (log.entries || []);
+    if (entries.length === 0 && !log.generalNotes && !log.mood) return null;
+    const compIds = new Set(entries.flatMap(e => e.competencies || []));
+    const compNames = [...compIds].map(id => {
+      const c = COMPETENCIES.find(x => x.id === id);
+      return c ? `${c.icon} ${c.name}` : id;
+    }).join(', ');
+    const entriesText = entries.map((e, i) =>
+      `  ${i + 1}. ${e.situation || ''} → ${e.action || ''} [${(e.competencies || []).map(id => COMPETENCIES.find(x => x.id === id)?.name || id).join(', ')}]`
+    ).join('\n');
+    return `### ${formatDate(d)} ${log.mood === 'good' ? '😊' : log.mood === 'tough' ? '😤' : log.mood === 'neutral' ? '😐' : ''}
+Entries: ${entries.length} | Competencies: ${compNames || 'None'}
+${entriesText}${log.generalNotes ? `\nNotes: ${log.generalNotes}` : ''}`;
+  }).filter(Boolean);
+
+  const allEntries = weekEntries.flatMap(([d, log]) =>
+    (log.entries || []).map(e => ({ date: d, ...e }))
+  );
+
+  const coverage = {};
+  COMPETENCIES.forEach(c => { coverage[c.id] = { name: c.name, nameCn: c.nameCn, icon: c.icon, count: 0 }; });
+  allEntries.forEach(e => {
+    (e.competencies || []).forEach(id => { if (coverage[id]) coverage[id].count++; });
+  });
+
+  const uncovered = COMPETENCIES.filter(c => coverage[c.id].count === 0);
+
+  return `You are a supportive performance improvement coach reviewing ${targetName}'s Week ${week} logs for her 60-day PIP at Tadika Bijak Junior kindergarten (KP branch).
+
+LANGUAGE: Respond in BOTH English AND Chinese (简体中文). For each section, write English first, then Chinese below.
+
+## Week ${week} — Full Daily Logs
+${dayByDay.length > 0 ? dayByDay.join('\n\n') : '(No entries logged this week)'}
+
+## Competency Coverage
+${Object.values(coverage).map(c => `${c.icon} ${c.name} (${c.nameCn}): ${c.count} entries${c.count === 0 ? ' ❌' : ' ✅'}`).join('\n')}
+
+## Uncovered This Week
+${uncovered.length > 0 ? uncovered.map(c => `- ${c.icon} ${c.name} (${c.nameCn})`).join('\n') : 'All 8 competencies covered!'}
+
+---
+Write a comprehensive weekly summary. Be specific, reference actual log entries, and be encouraging but honest about gaps.
+
+### 📊 Week ${week} Overview / 第${week}周概览
+How many days logged, total entries, overall pattern. Was this a strong week or a quiet one?
+
+### ✅ Key Achievements / 主要成就
+3-5 specific things ${targetName} did well this week. Reference actual log entries and name the exact PIP concerns being addressed.
+
+### 📈 Progress Trend / 进步趋势
+Compare to what a typical Week ${week} should look like. Is she on track for Day 60?
+
+### ⚠️ Gaps & Risks / 差距与风险
+Which competencies were NOT covered? Which specific PIP concerns still have no evidence? Be thorough.
+
+### 🎯 Focus for Next Week / 下周重点
+3-5 specific, actionable priorities for Week ${week + 1} targeting the biggest gaps.
+
+### 💬 Weekly Encouragement / 每周鼓励
+Genuine, specific encouragement based on what she actually did this week.
+
+Be thorough and specific. Every unaddressed concern is a risk for Day 60.`;
+}

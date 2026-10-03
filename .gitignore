@@ -26,5 +26,8 @@ dist-ssr
 # App settings (may contain local paths)
 ai-settings.json
 
+# SQLite log database
+data/
+
 # PDF originals
 *.pdf

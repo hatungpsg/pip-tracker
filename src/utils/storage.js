@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'pip-tracker-data';
+const API = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`;
 
 const DEFAULT_DATA = {
   dailyLogs: {},
@@ -8,7 +9,8 @@ const DEFAULT_DATA = {
   targetName: 'Irene',
 };
 
-export function loadData() {
+/** Browser copy. Left in place for a later migration into SQLite. */
+export function loadLocalData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_DATA };
@@ -18,8 +20,28 @@ export function loadData() {
   }
 }
 
+export function loadData() {
+  return loadLocalData();
+}
+
+export async function fetchRemoteData() {
+  const res = await fetch(`${API}/data`);
+  if (!res.ok) throw new Error('Could not load logs from the server');
+  return { ...DEFAULT_DATA, ...await res.json() };
+}
+
+let saveTimer;
 export function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fetch(`${API}/data`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch((err) => {
+      console.error('Could not save logs', err);
+    });
+  }, 300);
 }
 
 export function getDailyLog(data, dateStr) {

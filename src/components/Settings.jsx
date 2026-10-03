@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getSettings, updateSettings, testCLI } from '../utils/api';
-import { exportData, importData, loadData, saveData } from '../utils/storage';
+import { exportData, importData, saveData } from '../utils/storage';
 
 const PRESETS = [
-  { id: 'agy', label: 'Antigravity (agy)', command: 'C:\\Users\\hatung.wong\\AppData\\Local\\agy\\bin\\agy.exe', args: ['-p'] },
+  { id: 'agy', label: 'Antigravity (agy)', command: 'agy', args: ['-p'] },
   { id: 'claude', label: 'Claude CLI', command: 'claude', args: ['-p'] },
   { id: 'codex', label: 'Codex CLI', command: 'codex', args: ['exec'] },
   { id: 'custom', label: 'Custom', command: '', args: [] },
@@ -45,7 +45,7 @@ export default function Settings({ data, setData }) {
   }
 
   function handleExport() {
-    exportData(loadData());
+    exportData(data);
   }
 
   async function handleImport(e) {
@@ -53,8 +53,9 @@ export default function Settings({ data, setData }) {
     if (!file) return;
     try {
       const d = await importData(file);
+      setData(d);
       saveData(d);
-      alert('Data imported successfully. Refresh the page to see changes.');
+      alert('Data imported into the database.');
     } catch (err) {
       alert(`Import failed: ${err.message}`);
     }

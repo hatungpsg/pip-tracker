@@ -1,4 +1,4 @@
-const API = '/api';
+const API = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`;
 
 export async function analyzeDaily(prompt) {
   const res = await fetch(`${API}/analyze`, {

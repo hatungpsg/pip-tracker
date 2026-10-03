@@ -3,6 +3,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/admin/pnp_dragonfly/' : '/',
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
